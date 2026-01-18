@@ -14,6 +14,7 @@ The dataset format uses:
 from __future__ import annotations
 
 import json
+import re
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -121,26 +122,33 @@ class ChessTokenizer(PreTrainedTokenizer):
         Returns:
             A ChessTokenizer with the built vocabulary.
         """
-        from collections import Counter
+
+
+        # from collections import Counter
+        #
+        # token_counts = Counter()
         
-        token_counts = Counter()
-        
-        for game in iterator:
-            moves = game.strip().split()
-            token_counts.update(moves)
-        
-        # Filter by frequency
-        tokens = [
-            token for token, count in token_counts.items()
-            if count >= min_frequency
-        ]
-        
-        # Sort for reproducibility
-        tokens = sorted(tokens)
+        # for game in iterator:
+        #     moves = game.strip().split()
+        #     token_counts.update(moves)
+        #
+        #
+        # # Filter by frequency
+        # tokens = [
+        #     token for token, count in token_counts.items()
+        #     if count >= min_frequency
+        # ]
+        #
+        # # Sort for reproducibility
+        # tokens = sorted(tokens)
         
         # Build vocabulary
         special_tokens = [cls.PAD_TOKEN, cls.BOS_TOKEN, cls.EOS_TOKEN, cls.UNK_TOKEN]
-        vocab = {token: idx for idx, token in enumerate(special_tokens + tokens)}
+        piece = ['K', 'Q', 'R', 'B', 'N', 'P']
+        move = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8']
+
+        # vocab = {token: idx for idx, token in enumerate(special_tokens + tokens)}
+        vocab = {token: idx for idx, token in enumerate(special_tokens + piece + move)}
         
         return cls(vocab=vocab)
     
@@ -198,7 +206,18 @@ class ChessTokenizer(PreTrainedTokenizer):
         Returns:
             List of move tokens.
         """
-        return text.strip().split()
+
+        regex = r"^[WB]([KQRBNP])([a-h][1-8])([a-h][1-8])"
+
+        tokens = []
+        for move in text.strip().split():
+            match = re.search(regex, move)
+            if match:
+                tokens += list(match.groups())
+            else:
+                tokens += self.UNK_TOKEN
+
+        return tokens
     
     def _convert_token_to_id(self, token: str) -> int:
         """Convert a token to its ID."""
